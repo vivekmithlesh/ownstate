@@ -1,0 +1,24 @@
+// OwnState — Prisma schema (Brick 02)
+//
+// Prisma 7 conventions (this is NOT Prisma 6):
+//   • The connection URL is configured in `prisma.config.ts`, NOT with env() here.
+//   • The generator is the new "prisma-client" (ESM) with a required output path.
+//
+// Workflow (USER ACTION — needs a live DB connection):
+//   1. npx prisma db pull   → introspects Supabase and fills in the models below.
+//   2. npx prisma generate  → emits the typed client into ./src/generated/prisma
+//
+// PostGIS columns (properties.location, land_boundaries.boundary) will appear as
+// `Unsupported("geography")` after db pull — that is expected. We read/write them
+// through Supabase RPC (ST_* functions), not through Prisma, so leave them as-is.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Models are populated by `npx prisma db pull`.
