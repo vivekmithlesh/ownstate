@@ -1,0 +1,244 @@
+# OwnState — Production Build Guide (for Claude Code)
+
+> **CLAUDE CODE: READ THIS FIRST**
+>
+> You are building **OwnState** — a real, production-ready, global real-estate platform.
+> This is NOT a mock/demo. Every page must use REAL data from a real database.
+> Build it **brick by brick, in order**. Do ONLY the brick the user names, finish it
+> completely, then STOP and tell the user the exact TEST steps. Wait for "next brick".
+>
+> **Hard rules — never compromise on these:**
+> - NO mock data, NO hardcoded fake arrays in final pages. Data comes from Supabase.
+> - Every feature listed in "CORE FEATURES" below MUST exist by the end.
+> - Must work fully on BOTH desktop AND mobile (responsive, tested at 375px and 1280px).
+> - Real auth, real uploads, real payments (test mode), real geo-search (PostGIS).
+> - Clean, typed, no `any` where avoidable. Handle loading + error + empty states everywhere.
+> - The aesthetic is premium and cinematic (deep-space hero) — NOT a plain template.
+>
+> **What you (Claude Code) DO:** write all code/files, run terminal commands, fix errors,
+> explain each step briefly.
+> **What you do NOT do (the user does these — marked "USER ACTION"):** create accounts,
+> click dashboard buttons, paste secret keys into .env.local, run SQL in the Supabase SQL
+> Editor. When a brick needs a USER ACTION, STOP and tell the user clearly.
+
+---
+
+## CORE IDEA (never lose sight of this)
+OwnState lets anyone **buy, sell, rent, or lease ANY property on Earth** — from a village
+plot to a flat, a mansion, or a private island — entirely online, no agent needed.
+Its signature feature is **Digital Land Fencing**: mark your land's boundary on a map,
+link your government papers, and protect it forever.
+
+## CORE FEATURES (all must exist by the end)
+1. Live property search on an interactive map with real market rates
+2. No physical visit needed — full online discovery
+3. List your land/property to reach buyers & renters
+4. Digital Land Fencing — draw boundary on map, save to PostGIS, link documents
+5. Personal dashboard — properties, listings, saved, enquiries, deals
+6. Rent / sell / lease flats, houses, commercial, plots
+7. Legal transaction pipeline (Deal Room) — token, agreement, payment
+8. Every property type: flat, house, villa, commercial, penthouse, mansion, chateau, island
+9. Lease support
+10. Cinematic 3D Earth hero on the homepage that tells the story visually
+
+## TECH STACK (do not substitute without asking)
+Next.js 14 (App Router) + TypeScript · Supabase (Postgres + PostGIS + Auth + Storage) ·
+Prisma · Tailwind + shadcn/ui · Leaflet + react-leaflet + Leaflet-Geoman + @turf/turf (free maps) ·
+React Three Fiber + drei + postprocessing · framer-motion · Razorpay · React Query · Vercel.
+
+## DESIGN SYSTEM (apply everywhere)
+- Colors: dark `#0d2b1e`, mid `#1D9E75`, light `#E1F5EE`, teal `#0F6E56`, pale `#9FE1CB`,
+  accent `#5DCAA5`, island-blue `#378ADD`, gold `#B8860B`, space `#05060a`
+- Font: DM Sans. Mood: premium, cinematic, earth-blended. Generous spacing, smooth easing.
+- Every interactive element: hover + focus + active states. Mobile tap targets ≥ 44px.
+- Light theme for app pages, dark space theme for the hero.
+
+## BUILD ORDER (NEVER skip — each brick depends on the previous)
+```
+00 Setup + accounts          08 Search + Map (real PostGIS)
+01 Database schema (PostGIS)  09 Property Detail (real)
+02 Prisma + Supabase clients  10 List Property (real save + storage)
+03 Seed real data             11 Dashboard (real user data)
+04 Real Auth                  12 Land Fencing (real polygons)
+05 Data layer (server actions) 13 Deal Room + Payments
+06 Design system + layout     14 3D Earth Hero (cinematic)
+07 Home page (real featured)  15 Polish + Mobile + Deploy
+```
+
+---
+
+# BRICK 00 — Setup + Accounts
+
+**USER ACTION (browser):**
+1. supabase.com → sign in with GitHub → New Project `ownstate`, region Singapore/Mumbai, save DB password.
+2. vercel.com → sign in with GitHub (used in Brick 15).
+(No map account needed — Leaflet + OpenStreetMap is free and keyless.)
+
+**Claude Code — run:**
+```bash
+npx create-next-app@latest ownstate --typescript --tailwind --eslint --app --src-dir --import-alias "@/*"
+cd ownstate
+npm install @supabase/supabase-js @supabase/ssr
+npm install prisma @prisma/client
+npm install leaflet react-leaflet @turf/turf
+npm install @geoman-io/leaflet-geoman-free
+npm install three @react-three/fiber @react-three/drei @react-three/postprocessing postprocessing maath
+npm install lucide-react framer-motion clsx tailwind-merge
+npm install react-hook-form zod @hookform/resolvers
+npm install @tanstack/react-query recharts react-hot-toast razorpay
+npm install -D @types/leaflet tsx
+npx shadcn@latest init   # Default style, Slate, CSS variables = Yes
+npx shadcn@latest add button input card badge dialog sheet tabs select slider progress avatar dropdown-menu accordion sonner skeleton
+npm run dev
+```
+
+**USER ACTION — create `.env.local` with YOUR values:**
+```
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
+DATABASE_URL=...        # Settings -> Database -> pooler URI (6543) + ?pgbouncer=true
+DIRECT_URL=...          # direct URI (5432)
+# No map token needed! Leaflet + OpenStreetMap is free, no key required.
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+**TEST:** localhost:3000 runs clean. `git init && git add . && git commit -m "brick 00"`.
+
+---
+
+# BRICK 01 — Database Schema (PostGIS)
+
+**USER ACTION:** Supabase → Database → Extensions → enable **postgis**.
+
+**Claude Code — create `supabase/schema.sql`** (full Postgres + PostGIS):
+- `profiles` (id refs auth.users, full_name, phone, role check buyer/seller/agent/admin, kyc_status, avatar_url, created_at)
+- `properties` (owner_id, title, description, type[flat/house/land/commercial/villa/penthouse/mansion/chateau/island], listing_type[sell/rent/lease], status default active, price bigint paise, area_sqft, area_unit, bedrooms, bathrooms, furnishing, address, locality, city, state, country default India, pincode, `location geography(Point,4326)`, amenities text[], rera_number, verified bool, cover_image, images text[], created_at, updated_at)
+- `land_boundaries` (owner_id, property_id, land_name, khasra_number, khata_number, village, tehsil, district, state, `boundary geography(Polygon,4326)`, area_acres, ownership_type, notes, document_urls text[], verified, created_at)
+- `deals` (property_id, buyer_id, seller_id, deal_type, status default interested [interested/token_paid/agreement_signed/registered/complete/cancelled], agreed_price, token_amount, token_paid_at, created_at)
+- `saved_properties` (user_id, property_id, unique(user_id,property_id))
+- `enquiries` (property_id, from_user, name, phone, message, created_at)
+- `messages` (deal_id, sender_id, body, created_at)
+- `alerts` (user_id, type, filters jsonb, created_at)
+
+Also: GIST indexes on `properties.location` + `land_boundaries.boundary`; btree on `properties(city,status,listing_type)` + `properties(price)`; trigger `handle_new_user` → profiles row on new auth.users; RLS on every table (profiles read-all/update-own; properties select active by anyone, owner CUD; land_boundaries owner-only; saved/alerts own only; deals+messages buyer/seller only). Header comment on how to run.
+
+**USER ACTION:** SQL Editor → paste → RUN. Confirm 9 tables.
+
+**TEST:** tables exist, PostGIS on, no errors. `git commit -m "brick 01"`.
+
+---
+
+# BRICK 02 — Prisma + Supabase Clients
+**Claude Code:** `prisma/schema.prisma` (postgresql, DATABASE_URL + directUrl); user runs `npx prisma db pull` then `npx prisma generate` (PostGIS cols stay Unsupported). `src/lib/supabase/client.ts`, `server.ts`, `middleware.ts` + `src/middleware.ts`, `src/types/database.ts` (Profile, Property with location `{lat,lng}`, LandBoundary, Deal, SavedProperty, Enquiry, Message + union types).
+**TEST:** `prisma db pull` connects, `generate` clean, dev clean. `git commit -m "brick 02"`.
+
+---
+
+# BRICK 03 — Seed Real Data
+**Claude Code:** `scripts/seed.ts` (+ `scripts/reset.ts`) using SERVICE_ROLE + dotenv. 3 profiles; 24 realistic Indian properties with accurate lat/lng across Mumbai, Delhi, Bangalore, Lucknow, Noida, Pune, Hyderabad, Jaipur, Chandigarh, Goa + 1 Andaman island + 2 luxury; real Unsplash cover images; `location` via RPC `insert_property` (`ST_SetSRID(ST_MakePoint(lng,lat),4326)`) — provide SQL in `supabase/seed_functions.sql`. Print summary.
+**USER ACTION:** run that SQL function, then `npx tsx scripts/seed.ts`.
+**TEST:** 24 rows, location not null. `git commit -m "brick 03"`.
+
+---
+
+# BRICK 04 — Real Authentication
+**USER ACTION:** Supabase → Auth → Providers → enable Email (+ Google optional). URL Config → add localhost:3000.
+**Claude Code:** `src/app/auth/page.tsx` (split screen, Login|Sign Up, real signUp with metadata, signInWithPassword → /dashboard, Google OAuth), `auth/callback/route.ts`, `auth/signout/route.ts`, `src/lib/auth.ts` (getUser, requireUser), `src/components/UserMenu.tsx`. Real Supabase calls only.
+**TEST:** signup→confirm→login→/dashboard; Users + profiles row created. `git commit -m "brick 04"`.
+
+---
+
+# BRICK 05 — Data Layer (Server Actions)
+**Claude Code — `src/lib/actions/`:**
+- `properties.ts`: getProperties(filters), getPropertiesInBounds(bounds) [RPC ST_Within ST_MakeEnvelope], getPropertiesNearby(lat,lng,km) [RPC ST_DWithin], getPropertyById(id) joined owner, getPropertyCountsByType(), createProperty(data) [status pending_review, {lat,lng}→PostGIS via RPC insert_property], updateProperty, deleteProperty.
+- `saved.ts`: toggleSaved, getSavedProperties. `enquiries.ts`: createEnquiry, getEnquiriesForOwner. `profile.ts`: getMyProfile, updateProfile.
+- `src/lib/queries.ts`: React Query hooks. For EVERY PostGIS op give SQL; collect in `supabase/functions.sql`. revalidatePath after mutations.
+**USER ACTION:** run `supabase/functions.sql`.
+**TEST:** functions run; getProperties returns 24; `npm run build` clean. `git commit -m "brick 05"`.
+
+---
+
+# BRICK 06 — Design System + Layout
+**Claude Code:** tailwind brand colors + DM Sans; globals.css utility classes; `src/lib/utils.ts` (formatPrice/formatArea/getPropertyIcon/cn); `src/lib/constants.ts` (types, 30 cities, states, amenities, budgets); `Navbar.tsx` (logo, Buy/Rent/Lease/Luxury/Map, UserMenu, List Property, mobile Sheet, announcement bar); `Footer.tsx`; `PropertyCard.tsx` (REUSABLE, real Property, working Save heart, → /property/[id]); `layout.tsx` (Navbar, Footer, Toaster, React Query provider, metadata).
+**TEST:** navbar reflects real auth; PropertyCard real data. `git commit -m "brick 06"`.
+
+---
+
+# BRICK 07 — Home Page (real featured)
+**Claude Code — `src/app/page.tsx` Server Component** (use a strong static dark hero placeholder now; 3D hero in Brick 14). Fetch getProperties({limit:6,verified:true}) + getPropertyCountsByType() + real stats. Sections: Hero (`<HeroSearch/>` client → /search), Browse by Type (real counts), Land Fencing spotlight (→ /dashboard/fencing), Featured (6 real cards), How It Works (Buyer/Seller tabs), NRI banner, Testimonials, Market ticker. Server Component; client only for interactive bits; empty state; responsive + framer-motion.
+**TEST:** real properties + counts; card → /property/[real-id]. `git commit -m "brick 07"`.
+
+---
+
+# BRICK 08 — Search + Map (real PostGIS)
+**Claude Code:** `PropertyMap.tsx` (react-leaflet + OpenStreetMap tiles, price markers, moveend→onBoundsChange, popup); `src/app/search/page.tsx` (filters from URL; getProperties on change; getPropertiesInBounds on map move debounced 400ms; list 40% + map 60%; mobile list + Map toggle sheet; filter bar + More Filters Sheet; URL sync; real count; hover↔marker; skeletons; empty state). All from DB.
+**TEST:** real markers+cards; filters re-query; pan fetches by bounds; mobile toggle. `git commit -m "brick 08"`.
+
+---
+
+# BRICK 09 — Property Detail (real)
+**Claude Code — `src/app/property/[id]/page.tsx`:** getPropertyById; notFound if null; breadcrumb; gallery from real images; Save/Share; LEFT: badges, title, address, price+per-sqft, specs, description, amenities, Location map on real coords, nearby, price-history chart (estimated), Similar (real). RIGHT sticky: EMI calc (real formula), Schedule Visit, Start Purchase (createDeal→/deal/[id]), Enquiry form (createEnquiry, toast), seller from profile. Mobile sticky bar. generateMetadata.
+**TEST:** real data+owner; enquiry inserts; Save toggles. `git commit -m "brick 09"`.
+
+---
+
+# BRICK 10 — List Property (real save + storage)
+**USER ACTION:** Supabase → Storage → buckets `property-images` (Public), `documents` (Private).
+**Claude Code — `src/app/list-property/page.tsx`** 7-step wizard, requires login: 1 Type+Purpose, 2 Basic Info, 3 Location (Leaflet draggable marker + GPS + Nominatim reverse-geocode, free), 4 Photos (upload to Storage, real URLs, progress, cover), 5 Pricing, 6 Documents (private bucket + RERA), 7 Review+Publish → createProperty (REAL insert pending_review + image URLs + PostGIS point) → success dialog. zod per step; localStorage persist; owner_id = user.
+**TEST:** list w/ photos → new row + image URLs + files in Storage → in dashboard. `git commit -m "brick 10"`.
+
+---
+
+# BRICK 11 — Dashboard (real user data)
+**Claude Code:** `dashboard/layout.tsx` (sidebar + mobile bottom tabs, requireUser); `dashboard/page.tsx` (real stat cards, my-properties map, listings table w/ real actions, recent enquiries, quick actions); `my-properties/page.tsx`; `saved/page.tsx`; `enquiries/page.tsx`. All real for logged-in user; empty states; responsive.
+**TEST:** shows YOUR listed property; saved works; delete removes from DB+search. `git commit -m "brick 11"`.
+
+---
+
+# BRICK 12 — Land Fencing (real polygons)
+**Claude Code:** `src/lib/actions/fencing.ts` (createBoundary via RPC insert_boundary ST_GeomFromGeoJSON, area_acres = ST_Area/4047; getMyBoundaries via ST_AsGeoJSON) — SQL in `supabase/fencing_functions.sql`; `FencingMap.tsx` (react-leaflet, Esri World Imagery satellite tiles free, Leaflet-Geoman polygon draw, browser geolocation GPS, @turf/area, cleanup); `dashboard/fencing/page.tsx` (map + 3-step form: Draw/Details/Docs; submit→createBoundary; "My Fenced Lands" re-rendered from stored GeoJSON). Responsive (map full-width mobile).
+**USER ACTION:** run `supabase/fencing_functions.sql`.
+**TEST:** draw→submit→real row + area + geography; reload re-renders. `git commit -m "brick 12"`.
+
+---
+
+# BRICK 13 — Deal Room + Payments (Razorpay TEST)
+**USER ACTION:** razorpay.com → Test Mode API keys → add `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `NEXT_PUBLIC_RAZORPAY_KEY_ID` to `.env.local`.
+**Claude Code:** `deals.ts` (createDeal, getDeal buyer/seller-only, advanceDeal validated, sendMessage/getMessages); `api/payment/create-order/route.ts` (Razorpay order, secret key server); `api/payment/verify/route.ts` (HMAC signature verify → deal token_paid); `PayTokenButton.tsx` (checkout.js → order → modal → verify → toast); `deal/[id]/page.tsx` (5-stage progress, current-stage action, financial summary, doc checklist, real chat, timeline, advance buttons). TEST mode, no hardcoded keys, server-side verify, statuses persist. Responsive.
+**TEST:** Start Purchase→real deal; Razorpay TEST card→token_paid in DB + test dashboard. `git commit -m "brick 13"`.
+
+---
+
+# BRICK 14 — Cinematic 3D Earth Hero
+**Claude Code — scroll-driven 3D Earth hero on homepage top.** Deep-space cinematic, earth greens/blues, NOT minimalist. Procedural Earth fallback so it runs without textures; use `public/textures/earth.jpg`+`earth-night.jpg`+`clouds.png` if present.
+
+`src/components/earth/`:
+- `EarthHero.tsx` (`'use client'`): `<Canvas>`, PerspectiveCamera fov45 @[0,0,6], drei `<Stars>`, cool ambient + warm directional sun, children Earth/Clouds/Atmosphere/ParticleField/SurfaceMarkers, `<EffectComposer><Bloom ~0.6/></>`, bg `#05060a`.
+- `Earth.tsx`: sphere r2; texture+night-emissive if present else procedural ocean `#0a2540` + green land Points `#1D9E75` (fibonacci + sine-noise); slow auto-rotate.
+- `Clouds.tsx`: transparent sphere r2.05, opacity 0.5*(1-progress).
+- `Atmosphere.tsx`: back-side rim glow `#5DCAA5`, 0.08→0.16 on zoom.
+- `ParticleField.tsx`: ~1500 drifting teal/white points (the "energy/higgs field" look), sinusoidal motion, faint optional connecting lines.
+- `SurfaceMarkers.tsx` (progress 0..1, surfacePoint helper): fencing polygon hexagon ring (`<Line>` `#1D9E75`) DRAWS edge-by-edge at 0.6–0.8 with `<Html>` "2.4 acres"; buildings cluster (~20 boxes rising) at 0.8–0.9 with "For Sale"/"For Rent" pills; island sphere + pulsing ring at 0.9 with "Island for sale".
+- `useScrollProgress.ts`: framer-motion useScroll on hero, useSpring smoothing.
+- `page.tsx`: tall container (~350vh desktop / 250vh mobile); `<EarthHero/>` sticky top h-screen; camera z lerps 6→3.1 + tilt (share progress via zustand/context for useFrame); overlay text beats: 0% logo+"Own Anything. Anywhere. On Earth."; 15% "Buy, sell, rent & fence any property on the planet"; 35% Buy/Sell/Rent/Lease pills; 55% "Live market rates" ticker; 70% "Fence your land digitally"; 100% glass search bar + "Start exploring" → /search. Real featured sections flow below.
+
+Motion: slow, weighty, easeInOutCubic. **prefers-reduced-motion:** static Earth + all text. Perf: pixelratio≤2, points not heavy meshes, dispose on unmount, AdaptiveDpr/AdaptiveEvents, pause useFrame off-screen. Mobile: halve stars/particles, segments 48, shorter scroll.
+**TEST:** Earth rotates; scroll zooms + clouds part + polygon draws + buildings rise + island appears; text beats hit; runs on phone; reduced-motion fallback. `git commit -m "brick 14"`.
+
+---
+
+# BRICK 15 — Polish + Mobile + Deploy
+**Claude Code:** mobile audit 375/768 (overflow, ≥44px taps, 1-col grids, sidebar→bottom tabs, search list+map toggle, deal stacks, fencing full-width); skeletons + empty states + `error.tsx` + themed `not-found.tsx`; toasts; SEO (generateMetadata, sitemap.ts, robots.ts, OG, image domains); Cmd+K palette over real properties; `npm run build` fix all errors.
+**USER ACTION — deploy:** push to GitHub; Vercel import; add ALL `.env.local` vars to Vercel; Deploy; Supabase Auth URL Config → add Vercel URL; set `NEXT_PUBLIC_APP_URL` to live URL.
+**Claude Code — final:** pre-launch checklist for the live URL.
+**TEST (live):** signup; list→search; geo-search; fencing save; Razorpay test pay; 3D hero on mobile. `git tag v1.0 && git push --tags`.
+
+---
+
+# AFTER v1.0 (priority)
+1. Admin panel `/admin` (until then approve in Supabase: status='active'). 2. Phone OTP (MSG91/Twilio). 3. Draw-region search. 4. next/image + Supabase transforms. 5. Saved-search alerts. 6. DigiLocker verification. 7. Razorpay LIVE. 8. Analytics.
+
+> Code is ~20%. The rest is real listings, trust, legal compliance, distribution. Win ONE city first, talk to 50 real landowners/buyers, then expand.
+
+**OwnState — Own Anything. Anywhere. On Earth.**
