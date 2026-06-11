@@ -7,9 +7,20 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-dm-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-dm-sans);
+
+  /* OwnState brand palette (Brick 06) */
+  --color-brand-dark: #0d2b1e;
+  --color-brand: #1d9e75;
+  --color-brand-light: #e1f5ee;
+  --color-brand-teal: #0f6e56;
+  --color-brand-pale: #9fe1cb;
+  --color-brand-accent: #5dcaa5;
+  --color-island: #378add;
+  --color-gold: #b8860b;
+  --color-space: #05060a;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -55,18 +66,18 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --primary: #0f6e56;
+  --primary-foreground: #ffffff;
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --accent: #e1f5ee;
+  --accent-foreground: #0d2b1e;
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --ring: #5dcaa5;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -126,5 +137,32 @@
   }
   html {
     @apply font-sans;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-heading tracking-tight;
+  }
+}
+
+@layer components {
+  /* Centered page gutter used across app pages. */
+  .container-page {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+  /* Vertical rhythm for home/landing sections. */
+  .section {
+    @apply py-12 sm:py-16 lg:py-20;
+  }
+  /* Deep-space hero backdrop (used by hero placeholder / auth panel). */
+  .bg-space-radial {
+    background:
+      radial-gradient(1200px 600px at 20% 10%, var(--color-brand-teal) 0%, transparent 55%),
+      radial-gradient(900px 500px at 90% 90%, var(--color-brand-dark) 0%, transparent 60%),
+      var(--color-space);
+  }
+  /* Subtle brand gradient for accents/cards. */
+  .text-gradient-brand {
+    @apply bg-gradient-to-r from-brand-teal to-brand bg-clip-text text-transparent;
   }
 }
