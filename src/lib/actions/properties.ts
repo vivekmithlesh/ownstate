@@ -63,6 +63,21 @@ export async function getProperties(
   return (data as PropertyCoordRow[]).map(rowToProperty);
 }
 
+/** Every property owned by the current user (any status), newest first. */
+export async function getMyProperties(): Promise<Property[]> {
+  const user = await getUser();
+  if (!user) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from(VIEW)
+    .select("*")
+    .eq("owner_id", user.id)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`getMyProperties: ${error.message}`);
+  return (data as PropertyCoordRow[]).map(rowToProperty);
+}
+
 /** Active properties whose point falls inside the given map viewport. */
 export async function getPropertiesInBounds(
   bounds: MapBounds,
