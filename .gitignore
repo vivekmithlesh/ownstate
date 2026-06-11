@@ -42,3 +42,7 @@ next-env.d.ts
 
 # prisma generated client (re-created by `npx prisma generate`)
 /src/generated
+
+# local dev artifacts
+.devlog.txt
+.home.html
