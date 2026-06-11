@@ -1,92 +1,285 @@
-// OwnState — Home (interim, Brick 06)
+// OwnState — Home (Brick 07)
 //
-// A real, data-backed home so the design system is demonstrable now: a dark
-// space-hero placeholder + a grid of real featured PropertyCards. Brick 07
-// builds the full home (browse-by-type, land-fencing spotlight, stats, etc.)
-// and Brick 14 replaces the hero with the cinematic 3D Earth.
+// Server Component. Real featured listings + real per-type counts. Interactive
+// bits (hero search, how-it-works tabs, market ticker, reveals) are isolated
+// client components. The static dark hero is replaced by the cinematic 3D Earth
+// in Brick 14.
 
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { ArrowRight, ShieldCheck, MapPin, Globe2, Plane } from "lucide-react";
 
-import { getProperties } from "@/lib/actions/properties";
+import {
+  getProperties,
+  getPropertyCountsByType,
+} from "@/lib/actions/properties";
 import { getSavedIds } from "@/lib/actions/saved";
-import { PropertyCard } from "@/components/PropertyCard";
+import { PROPERTY_TYPES } from "@/lib/constants";
+import { getPropertyIcon } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { PropertyCard } from "@/components/PropertyCard";
+import { Reveal } from "@/components/home/Reveal";
+import { HeroSearch } from "@/components/home/HeroSearch";
+import { HowItWorks } from "@/components/home/HowItWorks";
+import { MarketTicker } from "@/components/home/MarketTicker";
+
+const TESTIMONIALS = [
+  {
+    quote:
+      "I sold my Lucknow plot to a buyer in Bengaluru without a single site visit. The Deal Room made the paperwork painless.",
+    name: "Rekha Srivastava",
+    role: "Seller · Lucknow",
+  },
+  {
+    quote:
+      "Digital Land Fencing finally gave me proof of my boundary. I drew it on the map and linked my khasra papers in minutes.",
+    name: "Harpreet Singh",
+    role: "Landowner · Punjab",
+  },
+  {
+    quote:
+      "As an NRI I could browse, shortlist and pay the token from Dubai. OwnState felt built for buying from anywhere.",
+    name: "Imran Qureshi",
+    role: "Buyer · Dubai",
+  },
+];
 
 export default async function HomePage() {
-  const [featured, savedIds] = await Promise.all([
+  const [featured, counts, savedIds] = await Promise.all([
     getProperties({ limit: 6, verified: true }),
+    getPropertyCountsByType(),
     getSavedIds(),
   ]);
   const saved = new Set(savedIds);
+  const totalListings = Object.values(counts).reduce((a, b) => a + b, 0);
+
+  const stats = [
+    { label: "Live listings", value: `${totalListings}+` },
+    { label: "Property types", value: `${PROPERTY_TYPES.length}` },
+    { label: "Cities", value: "10+" },
+    { label: "Online", value: "100%" },
+  ];
 
   return (
     <>
-      {/* Hero placeholder (cinematic 3D Earth arrives in Brick 14) */}
+      {/* ---------------------------------------------------------------- Hero */}
       <section className="bg-space-radial text-brand-light">
-        <div className="container-page flex min-h-[60vh] flex-col items-center justify-center py-20 text-center">
+        <div className="container-page flex min-h-[78vh] flex-col items-center justify-center py-24 text-center">
+          <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-brand-pale backdrop-blur">
+            <Globe2 className="size-3.5 text-brand-accent" />
+            Buy, sell, rent &amp; fence any property on the planet
+          </span>
           <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl">
-            Own Anything. Anywhere. On Earth.
+            Own Anything. Anywhere.{" "}
+            <span className="text-gradient-brand">On Earth.</span>
           </h1>
           <p className="mt-5 max-w-xl text-brand-pale sm:text-lg">
-            Buy, sell, rent &amp; lease any property on the planet — and protect
-            your land forever with Digital Land Fencing.
+            From a village plot to a flat, a mansion or a private island — fully
+            online, no agent needed.
           </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Button size="lg" render={<Link href="/search" />}>
-              <Search /> Start exploring
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              render={<Link href="/list-property" />}
-              className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
-            >
-              List your property
-            </Button>
+
+          <div className="mt-9 flex w-full justify-center">
+            <HeroSearch />
+          </div>
+
+          <dl className="mt-12 grid w-full max-w-2xl grid-cols-2 gap-6 sm:grid-cols-4">
+            {stats.map((s) => (
+              <div key={s.label}>
+                <dt className="text-2xl font-semibold text-white">{s.value}</dt>
+                <dd className="text-xs text-brand-pale">{s.label}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      {/* -------------------------------------------------------- Browse by type */}
+      <section className="section">
+        <div className="container-page">
+          <Reveal>
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              Browse by type
+            </h2>
+            <p className="mt-1 text-muted-foreground">
+              Every kind of property — with live counts from real listings.
+            </p>
+          </Reveal>
+
+          <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            {PROPERTY_TYPES.map((t, i) => {
+              const Icon = getPropertyIcon(t.value);
+              const count = counts[t.value] ?? 0;
+              return (
+                <Reveal key={t.value} delay={i * 0.03}>
+                  <Link
+                    href={`/search?type=${t.value}`}
+                    className="group flex h-full flex-col gap-3 rounded-2xl border bg-card p-5 transition-colors hover:border-brand-accent hover:bg-brand-light/40"
+                  >
+                    <span className="grid size-11 place-items-center rounded-xl bg-brand-light text-brand-teal transition-colors group-hover:bg-brand-teal group-hover:text-white">
+                      <Icon className="size-5" />
+                    </span>
+                    <span className="font-medium">{t.label}</span>
+                    <span className="mt-auto text-sm text-muted-foreground">
+                      {count} {count === 1 ? "listing" : "listings"}
+                    </span>
+                  </Link>
+                </Reveal>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* Featured listings */}
+      {/* ----------------------------------------------------- Land Fencing spot */}
       <section className="section">
         <div className="container-page">
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-                Featured properties
-              </h2>
-              <p className="mt-1 text-muted-foreground">
-                Verified listings across India — homes, plots, estates &amp;
-                islands.
-              </p>
+          <Reveal>
+            <div className="grid items-center gap-8 overflow-hidden rounded-3xl bg-brand-dark p-8 text-brand-light sm:p-12 lg:grid-cols-2">
+              <div>
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs text-brand-pale">
+                  <ShieldCheck className="size-3.5 text-brand-accent" />
+                  Signature feature
+                </span>
+                <h2 className="mt-4 text-3xl font-semibold tracking-tight text-white">
+                  Digital Land Fencing
+                </h2>
+                <p className="mt-3 max-w-md text-brand-pale">
+                  Mark your land&apos;s boundary on a satellite map, link your
+                  government papers, and protect your plot forever. Your fence,
+                  saved precisely with PostGIS.
+                </p>
+                <Button
+                  size="lg"
+                  render={<Link href="/dashboard/fencing" />}
+                  className="mt-6 bg-brand-teal text-white hover:bg-brand"
+                >
+                  Fence your land <ArrowRight />
+                </Button>
+              </div>
+              <div className="relative aspect-[5/3] rounded-2xl bg-[radial-gradient(circle_at_30%_30%,#0F6E56_0%,transparent_60%),radial-gradient(circle_at_70%_70%,#1D9E75_0%,transparent_55%)] ring-1 ring-white/10">
+                <div className="absolute inset-6 rounded-xl border-2 border-dashed border-brand-accent/70" />
+                <MapPin className="absolute left-1/2 top-1/2 size-7 -translate-x-1/2 -translate-y-1/2 text-brand-accent" />
+              </div>
             </div>
-            <Button
-              variant="ghost"
-              render={<Link href="/search" />}
-              className="hidden sm:inline-flex"
-            >
-              View all
-            </Button>
-          </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ----------------------------------------------------------- Featured */}
+      <section className="section pt-0">
+        <div className="container-page">
+          <Reveal>
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+                  Featured properties
+                </h2>
+                <p className="mt-1 text-muted-foreground">
+                  Verified listings — homes, plots, estates &amp; islands.
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                render={<Link href="/search" />}
+                className="hidden sm:inline-flex"
+              >
+                View all <ArrowRight />
+              </Button>
+            </div>
+          </Reveal>
 
           {featured.length === 0 ? (
             <div className="mt-10 rounded-2xl border border-dashed p-12 text-center text-muted-foreground">
-              No listings yet. Run the seed (Brick 03) to populate properties.
+              No verified listings yet. Run the Brick 03 seed and the Brick 05
+              <code className="mx-1">functions.sql</code> to populate properties.
             </div>
           ) : (
             <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {featured.map((property) => (
-                <PropertyCard
-                  key={property.id}
-                  property={property}
-                  initialSaved={saved.has(property.id)}
-                />
+              {featured.map((property, i) => (
+                <Reveal key={property.id} delay={(i % 3) * 0.05}>
+                  <PropertyCard
+                    property={property}
+                    initialSaved={saved.has(property.id)}
+                  />
+                </Reveal>
               ))}
             </div>
           )}
         </div>
       </section>
+
+      {/* --------------------------------------------------------- How it works */}
+      <section className="section bg-muted/40">
+        <div className="container-page">
+          <Reveal className="text-center">
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              How OwnState works
+            </h2>
+            <p className="mx-auto mt-1 max-w-lg text-muted-foreground">
+              A fully online journey — whether you&apos;re buying your first home
+              or listing your family land.
+            </p>
+          </Reveal>
+          <div className="mt-10">
+            <HowItWorks />
+          </div>
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------------ NRI banner */}
+      <section className="section">
+        <div className="container-page">
+          <Reveal>
+            <div className="flex flex-col items-start justify-between gap-6 rounded-3xl border bg-gradient-to-r from-brand-light to-white p-8 sm:flex-row sm:items-center sm:p-10">
+              <div className="flex items-start gap-4">
+                <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-brand-teal text-white">
+                  <Plane className="size-6" />
+                </span>
+                <div>
+                  <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
+                    Buying from abroad?
+                  </h2>
+                  <p className="mt-1 max-w-md text-muted-foreground">
+                    OwnState is built for NRIs — discover, shortlist, enquire and
+                    pay the token from anywhere in the world.
+                  </p>
+                </div>
+              </div>
+              <Button size="lg" render={<Link href="/search" />}>
+                Explore for NRIs <ArrowRight />
+              </Button>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* --------------------------------------------------------- Testimonials */}
+      <section className="section pt-0">
+        <div className="container-page">
+          <Reveal>
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              Trusted across India &amp; beyond
+            </h2>
+          </Reveal>
+          <div className="mt-8 grid gap-6 md:grid-cols-3">
+            {TESTIMONIALS.map((t, i) => (
+              <Reveal key={t.name} delay={i * 0.05}>
+                <figure className="flex h-full flex-col rounded-2xl border bg-card p-6">
+                  <blockquote className="flex-1 text-sm leading-relaxed text-foreground/90">
+                    “{t.quote}”
+                  </blockquote>
+                  <figcaption className="mt-5">
+                    <div className="font-medium">{t.name}</div>
+                    <div className="text-xs text-muted-foreground">{t.role}</div>
+                  </figcaption>
+                </figure>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* --------------------------------------------------------- Market ticker */}
+      <MarketTicker />
     </>
   );
 }
