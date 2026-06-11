@@ -6,7 +6,7 @@
 // in Brick 14.
 
 import Link from "next/link";
-import { ArrowRight, ShieldCheck, MapPin, Plane } from "lucide-react";
+import { ArrowRight, ShieldCheck, Plane } from "lucide-react";
 
 import {
   getProperties,
@@ -97,9 +97,18 @@ export default async function HomePage() {
       <section className="section">
         <div className="container-page">
           <Reveal>
-            <div className="grid items-center gap-8 overflow-hidden rounded-3xl bg-brand-dark p-8 text-brand-light sm:p-12 lg:grid-cols-2">
-              <div>
-                <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs text-brand-pale">
+            <div className="relative flex min-h-[22rem] items-center overflow-hidden rounded-3xl bg-brand-dark bg-[url('/fencing-bg.png')] bg-cover bg-center p-8 text-brand-light ring-1 ring-white/10 sm:p-12">
+              {/* Readability scrim — concentrated behind the copy on the left
+                  and fading out quickly to the right, so the white text stays
+                  legible without flooding the whole satellite background. */}
+              <div className="absolute inset-0 bg-gradient-to-r from-brand-dark/90 via-brand-dark/55 to-transparent" />
+              {/* Green glow boost — a soft neon wash lifted over the boundary so
+                  the fence reads as luminous rather than flat. `mix-blend-screen`
+                  only lightens the background, never the z-10 copy on top. */}
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(55%_75%_at_60%_50%,rgba(93,202,165,0.45),transparent_70%)] mix-blend-screen" />
+
+              <div className="relative z-10 max-w-xl">
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs text-brand-pale backdrop-blur">
                   <ShieldCheck className="size-3.5 text-brand-accent" />
                   Signature feature
                 </span>
@@ -118,10 +127,6 @@ export default async function HomePage() {
                 >
                   Fence your land <ArrowRight />
                 </Button>
-              </div>
-              <div className="relative aspect-[5/3] rounded-2xl bg-[radial-gradient(circle_at_30%_30%,#0F6E56_0%,transparent_60%),radial-gradient(circle_at_70%_70%,#1D9E75_0%,transparent_55%)] ring-1 ring-white/10">
-                <div className="absolute inset-6 rounded-xl border-2 border-dashed border-brand-accent/70" />
-                <MapPin className="absolute left-1/2 top-1/2 size-7 -translate-x-1/2 -translate-y-1/2 text-brand-accent" />
               </div>
             </div>
           </Reveal>
