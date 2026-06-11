@@ -43,6 +43,15 @@ export type DealStatus =
   | "complete"
   | "cancelled";
 
+/** Ordered deal lifecycle. `cancelled` is a side exit from any live stage. */
+export const DEAL_STAGES: DealStatus[] = [
+  "interested",
+  "token_paid",
+  "agreement_signed",
+  "registered",
+  "complete",
+];
+
 /** A geographic point in WGS84 (SRID 4326). */
 export interface LatLng {
   lat: number;

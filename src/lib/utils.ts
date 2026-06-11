@@ -44,6 +44,17 @@ function trim(n: number): string {
   return Number(n.toFixed(2)).toLocaleString("en-IN")
 }
 
+/**
+ * The booking-token amount (in paise) for a deal of a given price.
+ * 1% of the agreed price, clamped to ₹1,000–₹5,00,000 and rounded to whole
+ * rupees. Deterministic so the deal page and the payment route agree.
+ */
+export function computeTokenPaise(pricePaise: number): number {
+  const onePercent = Math.round(pricePaise * 0.01)
+  const clamped = Math.min(Math.max(onePercent, 100_000), 50_000_000)
+  return Math.round(clamped / 100) * 100
+}
+
 /** Format an area value with its unit (e.g. 1450 → "1,450 sq ft"). */
 export function formatArea(
   value: number | null | undefined,
