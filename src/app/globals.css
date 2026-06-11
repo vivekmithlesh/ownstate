@@ -166,3 +166,26 @@
     @apply bg-gradient-to-r from-brand-teal to-brand bg-clip-text text-transparent;
   }
 }
+
+/* Leaflet price markers (Brick 08) — divIcon inner span styled as a pill. */
+.ownstate-price-marker span {
+  display: inline-block;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  background: #fff;
+  color: #0d2b1e;
+  border: 1px solid #5dcaa5;
+  border-radius: 9999px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.1;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.18);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.ownstate-price-marker span.is-active {
+  background: #0f6e56;
+  color: #fff;
+  border-color: #0f6e56;
+}
