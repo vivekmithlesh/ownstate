@@ -12,11 +12,12 @@ import type { MotionValue } from "framer-motion";
 import { fibonacciSphere, isLand } from "./geo";
 
 export function Earth({
-  reducedMotion,
+  scrollProgress,
+  isScrolling,
   isMobile,
 }: {
-  progress: MotionValue<number>;
-  reducedMotion: boolean;
+  scrollProgress: MotionValue<number>;
+  isScrolling: boolean;
   isMobile: boolean;
 }) {
   const group = useRef<THREE.Group>(null);
@@ -36,9 +37,11 @@ export function Earth({
     return g;
   }, [isMobile]);
 
-  useFrame((_, delta) => {
-    if (reducedMotion || !group.current) return;
-    group.current.rotation.y += delta * 0.045;
+  useFrame((state, delta) => {
+    if (!group.current) return;
+    // Rotate faster when scrolling, slow down to a drift when static
+    const rotationSpeed = isScrolling ? delta * 0.5 : delta * 0.045;
+    group.current.rotation.y += rotationSpeed;
   });
 
   const segments = isMobile ? 48 : 64;

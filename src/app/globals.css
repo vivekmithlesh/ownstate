@@ -205,3 +205,16 @@
   border: 3px solid #fff;
   box-shadow: 0 0 0 2px #0f6e56, 0 2px 8px rgb(0 0 0 / 0.35);
 }
+
+/* Keep Leaflet beneath the app chrome.
+   Leaflet gives its panes z-index 400–700 and its controls z-index 1000, all in
+   the page's stacking context — so they paint over the navbar (z-40), every
+   dropdown/dialog/sheet/select (z-50) and the command palette (z-100), making
+   the map "cover" menus and lists. Isolating the container creates a private
+   stacking context: all of Leaflet's internal z-indexes are scoped to the map,
+   and the map itself sits at z-index 0, below app chrome. Internal map layering
+   (tiles → markers → popups → controls) is preserved. */
+.leaflet-container {
+  isolation: isolate;
+  z-index: 0;
+}

@@ -20,7 +20,7 @@ import { PropertyCard } from "@/components/PropertyCard";
 import { Reveal } from "@/components/home/Reveal";
 import { HowItWorks } from "@/components/home/HowItWorks";
 import { MarketTicker } from "@/components/home/MarketTicker";
-import { EarthHeroSection } from "@/components/earth/EarthHeroSection";
+import EarthHero from "@/components/earth/EarthHero";
 
 const TESTIMONIALS = [
   {
@@ -53,8 +53,8 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* ----------------------------------------------- Cinematic 3D Earth hero */}
-      <EarthHeroSection />
+      {/* --------------------------------------------- Cinematic video Earth hero */}
+      <EarthHero />
 
       {/* -------------------------------------------------------- Browse by type */}
       <section className="section">
