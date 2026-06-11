@@ -6,6 +6,14 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  images: {
+    remotePatterns: [
+      // Supabase Storage (property images, avatars, docs)
+      { protocol: "https", hostname: "*.supabase.co", pathname: "/storage/v1/object/**" },
+      // Seed/demo imagery
+      { protocol: "https", hostname: "images.unsplash.com" },
+    ],
+  },
 };
 
 export default nextConfig;
