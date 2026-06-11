@@ -7,10 +7,13 @@ import { NextResponse, type NextRequest } from "next/server";
  *
  * Called from src/proxy.ts (Next.js 16 renamed `middleware` → `proxy`).
  *
- * Route protection (redirecting unauthenticated users) is intentionally NOT done
- * here yet — that arrives with auth in Brick 04. For now this only keeps the
- * session fresh so Server Components see an up-to-date user.
+ * Keeps the session fresh AND does an optimistic redirect of unauthenticated
+ * users away from protected areas (Brick 04). Pages still call requireUser() as
+ * the real gate — this is just a fast first line of defence.
  */
+
+// Path prefixes that require a logged-in user.
+const PROTECTED_PREFIXES = ["/dashboard", "/list-property", "/deal"];
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -37,7 +40,21 @@ export async function updateSession(request: NextRequest) {
 
   // IMPORTANT: Do not run any code between createServerClient and getUser().
   // A simple mistake could make it very hard to debug intermittent logouts.
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Optimistic gate: bounce signed-out users from protected areas to /auth.
+  const { pathname } = request.nextUrl;
+  const isProtected = PROTECTED_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`)
+  );
+  if (!user && isProtected) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth";
+    url.search = `?next=${encodeURIComponent(pathname)}`;
+    return NextResponse.redirect(url);
+  }
 
   return supabaseResponse;
 }
