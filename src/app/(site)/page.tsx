@@ -6,7 +6,7 @@
 // in Brick 14.
 
 import Link from "next/link";
-import { ArrowRight, ShieldCheck, MapPin, Globe2, Plane } from "lucide-react";
+import { ArrowRight, ShieldCheck, MapPin, Plane } from "lucide-react";
 
 import {
   getProperties,
@@ -18,9 +18,9 @@ import { getPropertyIcon } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { PropertyCard } from "@/components/PropertyCard";
 import { Reveal } from "@/components/home/Reveal";
-import { HeroSearch } from "@/components/home/HeroSearch";
 import { HowItWorks } from "@/components/home/HowItWorks";
 import { MarketTicker } from "@/components/home/MarketTicker";
+import { EarthHeroSection } from "@/components/earth/EarthHeroSection";
 
 const TESTIMONIALS = [
   {
@@ -50,47 +50,11 @@ export default async function HomePage() {
     getSavedIds(),
   ]);
   const saved = new Set(savedIds);
-  const totalListings = Object.values(counts).reduce((a, b) => a + b, 0);
-
-  const stats = [
-    { label: "Live listings", value: `${totalListings}+` },
-    { label: "Property types", value: `${PROPERTY_TYPES.length}` },
-    { label: "Cities", value: "10+" },
-    { label: "Online", value: "100%" },
-  ];
 
   return (
     <>
-      {/* ---------------------------------------------------------------- Hero */}
-      <section className="bg-space-radial text-brand-light">
-        <div className="container-page flex min-h-[78vh] flex-col items-center justify-center py-24 text-center">
-          <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-brand-pale backdrop-blur">
-            <Globe2 className="size-3.5 text-brand-accent" />
-            Buy, sell, rent &amp; fence any property on the planet
-          </span>
-          <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl">
-            Own Anything. Anywhere.{" "}
-            <span className="text-gradient-brand">On Earth.</span>
-          </h1>
-          <p className="mt-5 max-w-xl text-brand-pale sm:text-lg">
-            From a village plot to a flat, a mansion or a private island — fully
-            online, no agent needed.
-          </p>
-
-          <div className="mt-9 flex w-full justify-center">
-            <HeroSearch />
-          </div>
-
-          <dl className="mt-12 grid w-full max-w-2xl grid-cols-2 gap-6 sm:grid-cols-4">
-            {stats.map((s) => (
-              <div key={s.label}>
-                <dt className="text-2xl font-semibold text-white">{s.value}</dt>
-                <dd className="text-xs text-brand-pale">{s.label}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </section>
+      {/* ----------------------------------------------- Cinematic 3D Earth hero */}
+      <EarthHeroSection />
 
       {/* -------------------------------------------------------- Browse by type */}
       <section className="section">
