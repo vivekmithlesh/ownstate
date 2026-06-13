@@ -33,7 +33,10 @@ returns boolean
 language sql
 stable
 as $$
-  select coalesce(auth.role(), '') = 'service_role' or auth.uid() is null;
+  -- A normal browser/user request always carries auth.uid(). The seed script and
+  -- the server-only admin client use the service-role key, which has no uid — so
+  -- "no uid" cleanly means a trusted, privileged context.
+  select auth.uid() is null;
 $$;
 
 -- ===========================================================================
@@ -79,11 +82,22 @@ create trigger trg_properties_guard
 -- ---- Replace the over-powered insert_property with a safe, owner-scoped one --
 -- The app no longer calls insert_property; lock it to privileged callers (the
 -- seed script runs as service_role and is unaffected).
-revoke execute on function public.insert_property(
-  uuid, text, text, text, bigint, double precision, double precision, text, text,
-  numeric, text, int, int, text, text, text, text, text, text, text, text[], text,
-  boolean, text, text[]
-) from anon, authenticated;
+-- Auto-detects every overload of insert_property and revokes from each, so this
+-- never fails on an argument-signature mismatch (and is a no-op if it's absent).
+do $$
+declare
+  r record;
+begin
+  for r in
+    select p.oid::regprocedure as sig
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname = 'insert_property'
+  loop
+    execute format('revoke execute on function %s from anon, authenticated', r.sig);
+  end loop;
+end $$;
 
 -- Properties can carry private verification documents (uploaded to the private
 -- `documents` bucket). Without this column those uploads were orphaned.
