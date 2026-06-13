@@ -159,10 +159,14 @@ export function ListPropertyWizard({ userId }: { userId: string }) {
   const [createdId, setCreatedId] = useState<string | null>(null);
   const hydrated = useRef(false);
 
-  // Restore + persist draft.
+  // Restore the saved draft AFTER mount (not via a lazy useState initializer):
+  // reading localStorage during render would diverge from the server HTML and
+  // cause a hydration mismatch. This one-time post-hydration setState is the
+  // intended pattern, so the set-state-in-effect rule is disabled just here.
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (raw) setDraft({ ...EMPTY, ...JSON.parse(raw) });
     } catch {
       /* ignore */
@@ -275,6 +279,7 @@ export function ListPropertyWizard({ userId }: { userId: string }) {
         rera_number: draft.rera_number || null,
         cover_image: draft.cover_image ?? draft.images[0] ?? null,
         images: draft.images,
+        documentUrls: docs.map((d) => d.path),
       });
       localStorage.removeItem(STORAGE_KEY);
       setCreatedId(id);
@@ -869,6 +874,7 @@ function StepDocuments({
           Upload ownership / RERA documents
           <input
             type="file"
+            accept="application/pdf,image/jpeg,image/png,image/webp"
             multiple
             className="hidden"
             onChange={(e) => onPick(e.target.files)}

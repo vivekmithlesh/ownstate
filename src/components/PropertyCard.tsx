@@ -7,6 +7,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Heart, BedDouble, Bath, Maximize, BadgeCheck } from "lucide-react";
 import { toast } from "sonner";
 
@@ -76,12 +77,12 @@ export function PropertyCard({
       {/* Image */}
       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
         {property.cover_image ? (
-          // eslint-disable-next-line @next/next/no-img-element -- next/image domains configured in Brick 15
-          <img
+          <Image
             src={property.cover_image}
             alt={property.title}
-            loading="lazy"
-            className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="grid size-full place-items-center text-muted-foreground">

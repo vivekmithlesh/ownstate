@@ -317,6 +317,7 @@ export function FencingForm({ userId }: { userId: string }) {
             Upload documents
             <input
               type="file"
+              accept="application/pdf,image/jpeg,image/png,image/webp"
               multiple
               className="hidden"
               onChange={(e) => onPickDocs(e.target.files)}

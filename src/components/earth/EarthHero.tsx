@@ -17,12 +17,28 @@ const easeInOutCubic = cubicBezier(0.65, 0, 0.35, 1);
 export default function EarthHero() {
   const targetRef = useRef<HTMLDivElement>(null);
 
-  // Mount the <video> only after hydration. Video-speed browser extensions
-  // inject a control panel into <video> nodes before React hydrates, which
-  // mutates the server HTML and triggers a hydration mismatch. Rendering the
-  // video client-side means there's nothing for them to touch at hydration.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  // Only load the (heavy) hero video when it's actually worth it. We mount it
+  // after hydration AND gate it on: a wide enough viewport, no reduced-motion
+  // preference, and no Save-Data / 2g connection. On phones, data-saver, or
+  // reduced-motion the static dark gradient below stands in — so we never push
+  // a multi-megabyte autoplay video over mobile data. (Mounting client-side also
+  // avoids a hydration mismatch from video-speed browser extensions.)
+  const [showVideo, setShowVideo] = useState(false);
+  useEffect(() => {
+    const reduce = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+    const wide = window.matchMedia("(min-width: 768px)").matches;
+    const conn = (
+      navigator as Navigator & {
+        connection?: { saveData?: boolean; effectiveType?: string };
+      }
+    ).connection;
+    const cheapData =
+      conn?.saveData === true ||
+      (conn?.effectiveType ? /2g/.test(conn.effectiveType) : false);
+    setShowVideo(wide && !reduce && !cheapData);
+  }, []);
 
   // Track scroll across the tall section: 0 at the top, 1 when it leaves.
   const { scrollYProgress } = useScroll({
@@ -46,9 +62,20 @@ export default function EarthHero() {
     >
       {/* Pinned viewport: stays put while the section scrolls past it. */}
       <div className="sticky top-0 flex h-screen w-full items-center justify-center overflow-hidden">
+        {/* ---- Static cinematic gradient (always painted; LCP-safe fallback) ---- */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(120% 90% at 50% 35%, #0b2a3f 0%, #071a2a 45%, #05060a 100%)",
+          }}
+          aria-hidden="true"
+        />
+
         {/* ---- Fixed video background (scroll-zoom) ---- */}
-        {/* Client-only: avoids hydration mismatch from video-speed extensions. */}
-        {mounted && (
+        {/* Only on capable, non-data-saving devices; preload deferred so it never
+            blocks first paint. The gradient above is the fallback otherwise. */}
+        {showVideo && (
           <motion.video
             style={{ scale }}
             className="absolute inset-0 h-full w-full object-cover will-change-transform motion-reduce:!scale-100"
@@ -56,7 +83,7 @@ export default function EarthHero() {
             muted
             loop
             playsInline
-            preload="auto"
+            preload="none"
             aria-hidden="true"
           >
             <source src="/earth-hero.mp4" type="video/mp4" />

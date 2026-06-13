@@ -193,10 +193,13 @@ export async function advanceDeal(
     }
   }
 
-  const { error } = await supabase
-    .from("deals")
-    .update({ status: to })
-    .eq("id", id);
+  // Perform the write through the guarded RPC. A direct table UPDATE of `status`
+  // is blocked by the deals guard trigger (see supabase/security_hardening.sql);
+  // deal_advance re-validates party + transition and lifts the guard for this tx.
+  const { error } = await supabase.rpc("deal_advance", {
+    p_deal_id: id,
+    p_to: to,
+  });
   if (error) throw new Error(`advanceDeal: ${error.message}`);
 
   revalidatePath(`/deal/${id}`);

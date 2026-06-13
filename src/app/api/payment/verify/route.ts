@@ -11,6 +11,7 @@ import { revalidatePath } from "next/cache";
 
 import { getUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 function safeEqual(a: string, b: string): boolean {
   const ab = Buffer.from(a);
@@ -80,9 +81,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not your deal." }, { status: 403 });
   }
 
-  // Idempotent: if already paid, treat as success.
+  // Idempotent: if already paid, treat as success. The token_paid write goes
+  // through the service-role admin client because the deals guard trigger blocks
+  // normal users from setting `status`/`token_paid_at` directly — this is the one
+  // trusted context (Razorpay signature already verified above) allowed to do it.
   if (deal.status === "interested") {
-    const { error } = await supabase
+    const admin = createAdminClient();
+    const { error } = await admin
       .from("deals")
       .update({ status: "token_paid", token_paid_at: new Date().toISOString() })
       .eq("id", dealId);

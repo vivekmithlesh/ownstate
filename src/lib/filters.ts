@@ -61,6 +61,8 @@ export interface CreatePropertyInput {
   rera_number?: string | null;
   cover_image?: string | null;
   images?: string[];
+  /** Private verification documents (storage paths in the `documents` bucket). */
+  documentUrls?: string[];
 }
 
 /** Fields accepted when updating a listing (all optional). */

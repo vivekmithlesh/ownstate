@@ -5,7 +5,7 @@
 // reverse-geocoding to auto-fill the address fields. SSR-safe (loaded via
 // next/dynamic ssr:false from the wizard).
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -46,13 +46,16 @@ function ClickHandler({ onPick }: { onPick: (lat: number, lng: number) => void }
 function Recenter({ value }: { value: LatLngValue | null }) {
   const map = useMap();
   const last = useRef<string>("");
-  if (value) {
+  // Recenter as a side effect — never read/write refs or call map APIs during
+  // render (that's the react-hooks/refs rule and can desync the map).
+  useEffect(() => {
+    if (!value) return;
     const key = `${value.lat},${value.lng}`;
     if (key !== last.current) {
       last.current = key;
       map.setView([value.lat, value.lng], Math.max(map.getZoom(), 14));
     }
-  }
+  }, [value, map]);
   return null;
 }
 

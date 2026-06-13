@@ -4,6 +4,7 @@
 // Large active image + thumbnail strip, built from the property's real images.
 
 import { useState } from "react";
+import Image from "next/image";
 import { ImageOff } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -32,11 +33,13 @@ export function PropertyGallery({
   return (
     <div className="grid gap-3">
       <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl bg-muted">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src={photos[active]}
           alt={`${title} — photo ${active + 1}`}
-          className="size-full object-cover"
+          fill
+          priority
+          sizes="(max-width: 1024px) 100vw, 66vw"
+          className="object-cover"
         />
       </div>
 
@@ -55,12 +58,12 @@ export function PropertyGallery({
                   : "ring-transparent hover:ring-border"
               )}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src={src}
                 alt=""
-                className="size-full object-cover"
-                loading="lazy"
+                fill
+                sizes="80px"
+                className="object-cover"
               />
             </button>
           ))}

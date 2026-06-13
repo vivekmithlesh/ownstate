@@ -9,6 +9,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getUser } from "@/lib/auth";
+import { boundaryInputSchema, parseOrThrow } from "@/lib/validation";
 import type { PolygonCoords } from "@/types/database";
 
 export interface CreateBoundaryInput {
@@ -51,20 +52,22 @@ export async function createBoundary(
   const user = await getUser();
   if (!user) throw new Error("Please sign in to fence your land.");
 
+  const v = parseOrThrow(boundaryInputSchema, input);
+
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("insert_boundary", {
     p_owner_id: user.id,
-    p_land_name: input.landName,
-    p_geojson: input.geojson,
-    p_khasra_number: input.khasraNumber ?? null,
-    p_khata_number: input.khataNumber ?? null,
-    p_village: input.village ?? null,
-    p_tehsil: input.tehsil ?? null,
-    p_district: input.district ?? null,
-    p_state: input.state ?? null,
-    p_ownership_type: input.ownershipType ?? null,
-    p_notes: input.notes ?? null,
-    p_document_urls: input.documentUrls ?? [],
+    p_land_name: v.landName,
+    p_geojson: v.geojson,
+    p_khasra_number: v.khasraNumber ?? null,
+    p_khata_number: v.khataNumber ?? null,
+    p_village: v.village ?? null,
+    p_tehsil: v.tehsil ?? null,
+    p_district: v.district ?? null,
+    p_state: v.state ?? null,
+    p_ownership_type: v.ownershipType ?? null,
+    p_notes: v.notes ?? null,
+    p_document_urls: v.documentUrls ?? [],
   });
   if (error) throw new Error(`createBoundary: ${error.message}`);
 

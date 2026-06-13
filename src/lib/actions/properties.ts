@@ -17,6 +17,7 @@ import {
   type PropertyFilters,
   type UpdatePropertyInput,
 } from "@/lib/filters";
+import { propertyInputSchema, parseOrThrow, uuidSchema } from "@/lib/validation";
 import type { Profile, Property, PropertyWithOwner } from "@/types/database";
 
 const VIEW = "properties_with_coords";
@@ -164,33 +165,37 @@ export async function createProperty(
   const user = await getUser();
   if (!user) throw new Error("You must be signed in to list a property.");
 
+  // Authoritative server-side validation (never trust the client form).
+  const v = parseOrThrow(propertyInputSchema, input);
+
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("insert_property", {
-    p_owner_id: user.id,
-    p_title: input.title,
-    p_type: input.type,
-    p_listing_type: input.listing_type,
-    p_price: input.price,
-    p_lat: input.lat ?? null,
-    p_lng: input.lng ?? null,
-    p_description: input.description ?? null,
-    p_status: "pending_review",
-    p_area_sqft: input.area_sqft ?? null,
-    p_area_unit: input.area_unit ?? "sqft",
-    p_bedrooms: input.bedrooms ?? null,
-    p_bathrooms: input.bathrooms ?? null,
-    p_furnishing: input.furnishing ?? null,
-    p_address: input.address ?? null,
-    p_locality: input.locality ?? null,
-    p_city: input.city ?? null,
-    p_state: input.state ?? null,
-    p_country: input.country ?? "India",
-    p_pincode: input.pincode ?? null,
-    p_amenities: input.amenities ?? [],
-    p_rera_number: input.rera_number ?? null,
-    p_verified: false,
-    p_cover_image: input.cover_image ?? null,
-    p_images: input.images ?? [],
+  // create_my_property is SECURITY INVOKER: owner is forced to auth.uid(),
+  // verified is always false and status is always pending_review at the DB level
+  // (see supabase/security_hardening.sql). The client cannot override any of it.
+  const { data, error } = await supabase.rpc("create_my_property", {
+    p_title: v.title,
+    p_type: v.type,
+    p_listing_type: v.listing_type,
+    p_price: v.price,
+    p_lat: v.lat ?? null,
+    p_lng: v.lng ?? null,
+    p_description: v.description ?? null,
+    p_area_sqft: v.area_sqft ?? null,
+    p_area_unit: v.area_unit ?? "sqft",
+    p_bedrooms: v.bedrooms ?? null,
+    p_bathrooms: v.bathrooms ?? null,
+    p_furnishing: v.furnishing ?? null,
+    p_address: v.address ?? null,
+    p_locality: v.locality ?? null,
+    p_city: v.city ?? null,
+    p_state: v.state ?? null,
+    p_country: v.country ?? "India",
+    p_pincode: v.pincode ?? null,
+    p_amenities: v.amenities ?? [],
+    p_rera_number: v.rera_number ?? null,
+    p_cover_image: v.cover_image ?? null,
+    p_images: v.images ?? [],
+    p_document_urls: v.documentUrls ?? [],
   });
   if (error) throw new Error(`createProperty: ${error.message}`);
 
@@ -207,6 +212,7 @@ export async function updateProperty(
 ): Promise<void> {
   const user = await getUser();
   if (!user) throw new Error("You must be signed in.");
+  parseOrThrow(uuidSchema, id);
 
   const { lat, lng, ...rest } = input;
   const supabase = await createClient();

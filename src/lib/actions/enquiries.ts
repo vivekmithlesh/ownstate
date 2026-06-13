@@ -5,6 +5,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getUser } from "@/lib/auth";
+import { enquiryInputSchema, parseOrThrow } from "@/lib/validation";
 import type { Enquiry } from "@/types/database";
 
 export interface CreateEnquiryInput {
@@ -19,16 +20,17 @@ export async function createEnquiry(
   input: CreateEnquiryInput
 ): Promise<{ id: string }> {
   const user = await getUser();
+  const v = parseOrThrow(enquiryInputSchema, input);
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("enquiries")
     .insert({
-      property_id: input.propertyId,
+      property_id: v.propertyId,
       from_user: user?.id ?? null,
-      name: input.name ?? null,
-      phone: input.phone ?? null,
-      message: input.message ?? null,
+      name: v.name ?? null,
+      phone: v.phone ?? null,
+      message: v.message ?? null,
     })
     .select("id")
     .single();
