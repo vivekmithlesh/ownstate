@@ -11,7 +11,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getUser } from "@/lib/auth";
 import { computeTokenPaise } from "@/lib/utils";
-import { DEAL_STAGES } from "@/types/database";
+import { isDealParty, validateDealTransition } from "@/lib/deal-logic";
 import type { Deal, DealStatus, Message } from "@/types/database";
 
 export interface CreateDealInput {
@@ -173,25 +173,13 @@ export async function advanceDeal(
     .eq("id", id)
     .maybeSingle();
   if (!deal) throw new Error("Deal not found.");
-  if (deal.buyer_id !== user.id && deal.seller_id !== user.id) {
+  if (!isDealParty(deal, user.id)) {
     throw new Error("You are not part of this deal.");
   }
 
   const current = deal.status as DealStatus;
-  if (current === "complete" || current === "cancelled") {
-    throw new Error("This deal is already closed.");
-  }
-
-  if (to === "cancelled") {
-    // allowed from any live stage
-  } else if (to === "token_paid") {
-    throw new Error("The token is paid through the payment step.");
-  } else {
-    const nextIndex = DEAL_STAGES.indexOf(current) + 1;
-    if (DEAL_STAGES[nextIndex] !== to) {
-      throw new Error("That stage isn't the next step.");
-    }
-  }
+  const check = validateDealTransition(current, to);
+  if (!check.ok) throw new Error(check.error);
 
   // Perform the write through the guarded RPC. A direct table UPDATE of `status`
   // is blocked by the deals guard trigger (see supabase/security_hardening.sql);

@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getUser } from "@/lib/auth";
 import { enquiryInputSchema, parseOrThrow } from "@/lib/validation";
+import { enforceIpLimit } from "@/lib/rate-limit";
 import type { Enquiry } from "@/types/database";
 
 export interface CreateEnquiryInput {
@@ -19,6 +20,10 @@ export interface CreateEnquiryInput {
 export async function createEnquiry(
   input: CreateEnquiryInput
 ): Promise<{ id: string }> {
+  // Per-IP throttle (covers anonymous senders the DB throttle can't); the DB
+  // enquiries_guard adds a per-user cap on top.
+  await enforceIpLimit("enquiry", 8, 60_000);
+
   const user = await getUser();
   const v = parseOrThrow(enquiryInputSchema, input);
   const supabase = await createClient();

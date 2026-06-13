@@ -12,6 +12,7 @@ import { revalidatePath } from "next/cache";
 import { getUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { enforceIpLimit } from "@/lib/rate-limit";
 
 function safeEqual(a: string, b: string): boolean {
   const ab = Buffer.from(a);
@@ -20,6 +21,15 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 export async function POST(request: Request) {
+  try {
+    await enforceIpLimit("payment-verify", 20, 60_000);
+  } catch {
+    return NextResponse.json(
+      { error: "Too many attempts. Please wait a moment." },
+      { status: 429 }
+    );
+  }
+
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
   if (!keySecret) {
     return NextResponse.json(

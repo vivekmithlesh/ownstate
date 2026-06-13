@@ -11,8 +11,19 @@ import Razorpay from "razorpay";
 import { getUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { computeTokenPaise } from "@/lib/utils";
+import { enforceIpLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
+  // Throttle order creation per IP (defense-in-depth against abuse/double-submit).
+  try {
+    await enforceIpLimit("payment-order", 10, 60_000);
+  } catch {
+    return NextResponse.json(
+      { error: "Too many attempts. Please wait a moment." },
+      { status: 429 }
+    );
+  }
+
   const keyId = process.env.RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
   if (!keyId || !keySecret) {

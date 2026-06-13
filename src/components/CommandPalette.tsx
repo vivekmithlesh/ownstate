@@ -79,6 +79,9 @@ export function CommandPalette() {
   useEffect(() => {
     const q = query.trim();
     if (!q) {
+      // Clearing results when the query empties — a legitimate sync to the
+      // debounced-search effect, not a render-time cascade.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setResults([]);
       setLoading(false);
       return;

@@ -37,6 +37,9 @@ export default function EarthHero() {
     const cheapData =
       conn?.saveData === true ||
       (conn?.effectiveType ? /2g/.test(conn.effectiveType) : false);
+    // One-time read of device capability after mount (can't run during SSR);
+    // this is the intended use of an effect, hence the scoped disable.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setShowVideo(wide && !reduce && !cheapData);
   }, []);
 

@@ -12,8 +12,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Typecheck & build
+  quality:
+    name: Quality gates
     runs-on: ubuntu-latest
 
     # Placeholder values so `next build` is deterministic without secrets.
@@ -37,8 +37,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # --- Quality gates: any failure fails the build / blocks the PR ---
       - name: Typecheck
         run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests + coverage thresholds
+        run: npm run test:coverage
 
       - name: Build
         run: npm run build
