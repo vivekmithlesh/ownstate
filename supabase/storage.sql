@@ -1,17 +1,26 @@
 -- =============================================================================
 -- OwnState — Storage buckets & policies  •  Brick 10
 -- =============================================================================
--- USER ACTION (dashboard) — create the buckets first:
---   Supabase → Storage → New bucket:
---     • property-images   → Public  ✓
---     • documents         → Public  ✗  (keep private)
+-- Run this whole file in the Supabase SQL Editor. It creates the two buckets
+-- AND their access policies, so no dashboard clicking is needed. Without the
+-- buckets, uploads fail with "Bucket not found"; without the policies they fail
+-- with "new row violates row-level security policy".
 --
--- THEN run this file in the SQL Editor to add access policies. Without these,
--- uploads fail with "new row violates row-level security policy".
+--     • property-images   → Public  ✓
+--     • documents         → Private ✗
 --
 -- Path convention (set by the app): "<auth.uid()>/<filename>", so each user can
 -- only write inside their own folder. IDEMPOTENT — safe to re-run.
 -- =============================================================================
+
+-- ---- Buckets (idempotent) ---------------------------------------------------
+insert into storage.buckets (id, name, public)
+values ('property-images', 'property-images', true)
+on conflict (id) do update set public = excluded.public;
+
+insert into storage.buckets (id, name, public)
+values ('documents', 'documents', false)
+on conflict (id) do update set public = excluded.public;
 
 -- ---- property-images: anyone can READ; owners write inside their own folder ---
 drop policy if exists "property_images_public_read" on storage.objects;

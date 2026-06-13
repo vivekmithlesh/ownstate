@@ -15,6 +15,7 @@ import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuItem,
   DropdownMenuSeparator,
@@ -61,14 +62,17 @@ export function UserMenu({ user }: { user: MenuUser | null }) {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" sideOffset={8} className="w-56">
-        <DropdownMenuLabel className="flex flex-col gap-0.5">
-          <span className="truncate text-sm font-medium text-foreground">
-            {user.name?.trim() || "Your account"}
-          </span>
-          <span className="truncate text-xs font-normal text-muted-foreground">
-            {user.email}
-          </span>
-        </DropdownMenuLabel>
+        {/* GroupLabel must live inside a Menu.Group (Base UI requirement). */}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="flex flex-col gap-0.5">
+            <span className="truncate text-sm font-medium text-foreground">
+              {user.name?.trim() || "Your account"}
+            </span>
+            <span className="truncate text-xs font-normal text-muted-foreground">
+              {user.email}
+            </span>
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
 
         <DropdownMenuSeparator />
 
@@ -91,6 +95,7 @@ export function UserMenu({ user }: { user: MenuUser | null }) {
           <DropdownMenuItem
             variant="destructive"
             closeOnClick={false}
+            nativeButton
             render={<button type="submit" className="w-full" />}
           >
             <LogOut />

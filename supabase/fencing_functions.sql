@@ -34,10 +34,23 @@ security invoker
 set search_path = public
 as $$
 declare
+  g      geometry;
   geo    geography(Polygon, 4326);
   new_id uuid;
 begin
-  geo := ST_SetSRID(ST_GeomFromGeoJSON(p_geojson), 4326)::geography;
+  -- Build the geometry from the browser's GeoJSON (always SRID 4326).
+  g := ST_SetSRID(ST_GeomFromGeoJSON(p_geojson), 4326);
+
+  -- Guard against a self-intersecting / degenerate trace so the user gets a
+  -- clear message instead of a cryptic geography cast failure.
+  if g is null or GeometryType(g) <> 'POLYGON' then
+    raise exception 'Boundary must be a single polygon.';
+  end if;
+  if not ST_IsValid(g) then
+    raise exception 'Boundary is self-intersecting — please redraw it cleanly.';
+  end if;
+
+  geo := g::geography;
 
   insert into public.land_boundaries (
     owner_id, property_id, land_name, khasra_number, khata_number,

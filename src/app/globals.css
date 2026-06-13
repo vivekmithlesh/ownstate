@@ -218,3 +218,24 @@
   isolation: isolate;
   z-index: 0;
 }
+
+/* Digital Land Fencing — glowing neon-green boundary (Brick 12).
+   Applied via Leaflet pathOptions.className on the drawn/saved polygon. The
+   drop-shadow filters give the SVG stroke a futuristic "energy fence" halo. */
+.fence-neon {
+  filter: drop-shadow(0 0 10px #39ff14);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .fence-neon {
+    animation: fence-pulse 2.4s ease-in-out infinite;
+  }
+}
+@keyframes fence-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 7px #39ff14);
+  }
+  50% {
+    filter: drop-shadow(0 0 13px #39ff14);
+  }
+}

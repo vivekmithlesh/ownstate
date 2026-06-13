@@ -17,9 +17,20 @@ import {
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { FencingMapClient } from "@/components/fencing/FencingMapClient";
 import { createBoundary } from "@/lib/actions/fencing";
 import { uploadDocument } from "@/lib/storage";
+import { INDIAN_STATES, DISTRICTS_BY_STATE } from "@/lib/india-geo";
+
+// Sentinel value for the district dropdown's "type it myself" escape hatch.
+const OTHER_DISTRICT = "__other__";
 
 const STEPS = ["Draw", "Details", "Documents"];
 const OWNERSHIP = ["Freehold", "Leasehold", "Ancestral", "Joint", "Other"];
@@ -60,6 +71,11 @@ export function FencingForm({ userId }: { userId: string }) {
   const [docs, setDocs] = useState<{ name: string; path: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
+  // True once the user opts to type a district not in the dependent dropdown.
+  const [districtOther, setDistrictOther] = useState(false);
+
+  // Districts for the chosen state (null → no curated list, use a text field).
+  const stateDistricts = DISTRICTS_BY_STATE[details.state] ?? null;
 
   const acres = areaSqm / 4046.86;
   const set = (patch: Partial<Details>) =>
@@ -200,8 +216,69 @@ export function FencingForm({ userId }: { userId: string }) {
           <Input label="Khata number" value={details.khata} onChange={(v) => set({ khata: v })} />
           <Input label="Village" value={details.village} onChange={(v) => set({ village: v })} />
           <Input label="Tehsil" value={details.tehsil} onChange={(v) => set({ tehsil: v })} />
-          <Input label="District" value={details.district} onChange={(v) => set({ district: v })} />
-          <Input label="State" value={details.state} onChange={(v) => set({ state: v })} />
+
+          {/* State — dropdown of all states + UTs. Changing it resets District. */}
+          <label className="block space-y-1.5">
+            <span className="text-sm font-medium">State</span>
+            <Select
+              value={details.state || null}
+              onValueChange={(v) => {
+                set({ state: (v as string) ?? "", district: "" });
+                setDistrictOther(false);
+              }}
+            >
+              <SelectTrigger className="h-10 w-full">
+                <SelectValue placeholder="Select state / UT" />
+              </SelectTrigger>
+              <SelectContent>
+                {INDIAN_STATES.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </label>
+
+          {/* District — dependent dropdown when the state has a curated list,
+              with an "Other…" escape to a text field; plain text otherwise. */}
+          <label className="block space-y-1.5">
+            <span className="text-sm font-medium">District</span>
+            {stateDistricts && !districtOther ? (
+              <Select
+                value={details.district || null}
+                onValueChange={(v) => {
+                  if (v === OTHER_DISTRICT) {
+                    setDistrictOther(true);
+                    set({ district: "" });
+                  } else {
+                    set({ district: (v as string) ?? "" });
+                  }
+                }}
+              >
+                <SelectTrigger className="h-10 w-full">
+                  <SelectValue placeholder="Select district" />
+                </SelectTrigger>
+                <SelectContent>
+                  {stateDistricts.map((d) => (
+                    <SelectItem key={d} value={d}>
+                      {d}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value={OTHER_DISTRICT}>Other…</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : (
+              <input
+                value={details.district}
+                onChange={(e) => set({ district: e.target.value })}
+                placeholder={
+                  details.state ? "Type district name" : "Pick a state first"
+                }
+                className={inputClass}
+              />
+            )}
+          </label>
           <label className="block space-y-1.5">
             <span className="text-sm font-medium">Ownership type</span>
             <select

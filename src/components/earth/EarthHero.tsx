@@ -6,7 +6,7 @@
 // through a tall track. A radial + bottom scrim keeps the centred branding
 // readable. Self-contained: no props, no R3F.
 
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, useScroll, useTransform, cubicBezier } from "framer-motion";
 import { ArrowRight, Globe2 } from "lucide-react";
@@ -16,6 +16,13 @@ const easeInOutCubic = cubicBezier(0.65, 0, 0.35, 1);
 
 export default function EarthHero() {
   const targetRef = useRef<HTMLDivElement>(null);
+
+  // Mount the <video> only after hydration. Video-speed browser extensions
+  // inject a control panel into <video> nodes before React hydrates, which
+  // mutates the server HTML and triggers a hydration mismatch. Rendering the
+  // video client-side means there's nothing for them to touch at hydration.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   // Track scroll across the tall section: 0 at the top, 1 when it leaves.
   const { scrollYProgress } = useScroll({
@@ -40,18 +47,21 @@ export default function EarthHero() {
       {/* Pinned viewport: stays put while the section scrolls past it. */}
       <div className="sticky top-0 flex h-screen w-full items-center justify-center overflow-hidden">
         {/* ---- Fixed video background (scroll-zoom) ---- */}
-        <motion.video
-          style={{ scale }}
-          className="absolute inset-0 h-full w-full object-cover will-change-transform motion-reduce:!scale-100"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          aria-hidden="true"
-        >
-          <source src="/earth-hero.mp4" type="video/mp4" />
-        </motion.video>
+        {/* Client-only: avoids hydration mismatch from video-speed extensions. */}
+        {mounted && (
+          <motion.video
+            style={{ scale }}
+            className="absolute inset-0 h-full w-full object-cover will-change-transform motion-reduce:!scale-100"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            aria-hidden="true"
+          >
+            <source src="/earth-hero.mp4" type="video/mp4" />
+          </motion.video>
+        )}
 
         {/* ---- Premium radial + bottom scrim for legibility ---- */}
         <div

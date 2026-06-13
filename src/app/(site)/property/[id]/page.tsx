@@ -33,6 +33,7 @@ import { PriceHistoryChart } from "@/components/property/PriceHistoryChart";
 import { ContactPanel } from "@/components/property/ContactPanel";
 import { MobileBar } from "@/components/property/MobileBar";
 import { LocationMapClient } from "@/components/property/LocationMapClient";
+import { DirectionsButton } from "@/components/fencing/DirectionsButton";
 import type { ListingType } from "@/types/database";
 
 const LISTING_LABEL: Record<ListingType, string> = {
@@ -242,8 +243,17 @@ export default async function PropertyPage({
             {/* Location */}
             {property.location && (
               <section>
-                <h2 className="text-xl font-semibold">Location</h2>
-                <p className="mt-1 text-sm text-muted-foreground">{where}</p>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-xl font-semibold">Location</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">{where}</p>
+                  </div>
+                  <DirectionsButton
+                    destLat={property.location.lat}
+                    destLng={property.location.lng}
+                    label="Get directions"
+                  />
+                </div>
                 <div className="mt-3 h-72 overflow-hidden rounded-2xl border">
                   <LocationMapClient
                     lat={property.location.lat}

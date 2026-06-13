@@ -2,12 +2,12 @@
 // Draw a boundary on satellite imagery, save it to PostGIS, and see every
 // fenced land redrawn from its stored GeoJSON. Real data only.
 
-import { CalendarDays, MapPin, Ruler, ShieldCheck, Sprout } from "lucide-react";
+import { ShieldCheck, Sprout } from "lucide-react";
 
 import { requireUser } from "@/lib/auth";
-import { getMyBoundaries, type FencedLand } from "@/lib/actions/fencing";
+import { getMyBoundaries } from "@/lib/actions/fencing";
 import { FencingForm } from "@/components/fencing/FencingForm";
-import { FencingMapClient } from "@/components/fencing/FencingMapClient";
+import { FencedLandCard } from "@/components/fencing/FencedLandCard";
 
 export const metadata = { title: "Land Fencing" };
 
@@ -58,86 +58,5 @@ export default async function FencingPage() {
         )}
       </section>
     </div>
-  );
-}
-
-function FencedLandCard({ land }: { land: FencedLand }) {
-  const place = [land.village, land.tehsil, land.district, land.state]
-    .filter(Boolean)
-    .join(", ");
-  const created = new Date(land.created_at).toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-
-  return (
-    <article className="overflow-hidden rounded-2xl border bg-card">
-      <div className="h-48 w-full border-b">
-        <FencingMapClient
-          mode="view"
-          value={land.boundary}
-          className="h-full w-full"
-        />
-      </div>
-      <div className="space-y-3 p-4">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="font-medium leading-tight">{land.land_name}</h3>
-          {land.verified ? (
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-brand-light px-2 py-0.5 text-xs font-medium text-brand-teal">
-              <ShieldCheck className="size-3.5" /> Verified
-            </span>
-          ) : (
-            <span className="inline-flex shrink-0 items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-              Pending
-            </span>
-          )}
-        </div>
-
-        <dl className="space-y-1.5 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <Ruler className="size-4 shrink-0 text-brand-teal" />
-            <span>
-              <strong className="text-foreground">
-                {land.area_acres != null ? land.area_acres.toFixed(2) : "—"}
-              </strong>{" "}
-              acres
-              {land.ownership_type ? ` · ${land.ownership_type}` : ""}
-            </span>
-          </div>
-          {place && (
-            <div className="flex items-center gap-2">
-              <MapPin className="size-4 shrink-0" />
-              <span className="truncate">{place}</span>
-            </div>
-          )}
-          <div className="flex items-center gap-2">
-            <CalendarDays className="size-4 shrink-0" />
-            <span>Fenced {created}</span>
-          </div>
-        </dl>
-
-        {(land.khasra_number || land.khata_number) && (
-          <div className="flex flex-wrap gap-1.5">
-            {land.khasra_number && (
-              <span className="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                Khasra {land.khasra_number}
-              </span>
-            )}
-            {land.khata_number && (
-              <span className="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                Khata {land.khata_number}
-              </span>
-            )}
-            {land.document_urls.length > 0 && (
-              <span className="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                {land.document_urls.length}{" "}
-                {land.document_urls.length === 1 ? "document" : "documents"}
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-    </article>
   );
 }
