@@ -2,7 +2,7 @@
 // Server Component. Real property + owner, gallery, specs, amenities, location
 // map, estimated price trend, EMI, enquiry/deal panel, similar + nearby.
 
-import { cache } from "react";
+import { cache, Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -17,21 +17,20 @@ import {
   Building2,
 } from "lucide-react";
 
-import {
-  getPropertyById,
-  getProperties,
-  getPropertiesNearby,
-} from "@/lib/actions/properties";
+import { getPropertyById } from "@/lib/actions/properties";
 import { getSavedIds } from "@/lib/actions/saved";
 import { getUser, getMyProfile } from "@/lib/auth";
 import { formatArea, formatPrice, getPropertyIcon } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { PropertyCard } from "@/components/PropertyCard";
 import { PropertyGallery } from "@/components/property/PropertyGallery";
 import { SaveShareButtons } from "@/components/property/SaveShareButtons";
 import { EmiCalculator } from "@/components/property/EmiCalculator";
 import { PriceHistoryChart } from "@/components/property/PriceHistoryChart";
 import { ContactPanel } from "@/components/property/ContactPanel";
+import {
+  RelatedProperties,
+  RelatedPropertiesSkeleton,
+} from "@/components/property/RelatedProperties";
 import { MobileBar } from "@/components/property/MobileBar";
 import { LocationMapClient } from "@/components/property/LocationMapClient";
 import { DirectionsButton } from "@/components/fencing/DirectionsButton";
@@ -89,16 +88,6 @@ export default async function PropertyPage({
 
   const profile = user ? await getMyProfile() : null;
   const savedSet = new Set(savedIds);
-
-  // Similar (same type) + nearby (geo), both excluding this property.
-  const [similarRaw, nearbyRaw] = await Promise.all([
-    getProperties({ type: property.type, limit: 7 }),
-    property.location
-      ? getPropertiesNearby(property.location.lat, property.location.lng, 75, 7)
-      : Promise.resolve([]),
-  ]);
-  const similar = similarRaw.filter((p) => p.id !== property.id).slice(0, 3);
-  const nearby = nearbyRaw.filter((p) => p.id !== property.id).slice(0, 4);
 
   const TypeIcon = getPropertyIcon(property.type);
   const where = [property.locality, property.city, property.state]
@@ -291,41 +280,17 @@ export default async function PropertyPage({
           </div>
         </div>
 
-        {/* Similar */}
-        {similar.length > 0 && (
-          <section className="mt-14">
-            <h2 className="text-2xl font-semibold tracking-tight">
-              Similar properties
-            </h2>
-            <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {similar.map((p) => (
-                <PropertyCard
-                  key={p.id}
-                  property={p}
-                  initialSaved={savedSet.has(p.id)}
-                />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Nearby */}
-        {nearby.length > 0 && (
-          <section className="mt-14">
-            <h2 className="text-2xl font-semibold tracking-tight">
-              Nearby properties
-            </h2>
-            <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {nearby.map((p) => (
-                <PropertyCard
-                  key={p.id}
-                  property={p}
-                  initialSaved={savedSet.has(p.id)}
-                />
-              ))}
-            </div>
-          </section>
-        )}
+        {/* Similar + nearby: streamed behind a skeleton so they don't block
+            the main content (and can't soft-200 the notFound() check above). */}
+        <Suspense fallback={<RelatedPropertiesSkeleton />}>
+          <RelatedProperties
+            propertyId={property.id}
+            type={property.type}
+            lat={property.location?.lat ?? null}
+            lng={property.location?.lng ?? null}
+            savedIds={savedIds}
+          />
+        </Suspense>
       </div>
 
       <MobileBar price={property.price} listingType={property.listing_type} />
