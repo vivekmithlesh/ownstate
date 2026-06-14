@@ -2,6 +2,7 @@
 // Server Component. Real property + owner, gallery, specs, amenities, location
 // map, estimated price trend, EMI, enquiry/deal panel, similar + nearby.
 
+import { cache } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -42,14 +43,20 @@ const LISTING_LABEL: Record<ListingType, string> = {
   lease: "For Lease",
 };
 
+// Deduped per-request fetch shared by generateMetadata and the page, so a found
+// property is queried once. generateMetadata resolves BEFORE the response
+// streams, so calling notFound() there yields a real HTTP 404 (not a soft-200
+// from the loading.tsx shell flushing first).
+const getProperty = cache(getPropertyById);
+
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const property = await getPropertyById(id);
-  if (!property) return { title: "Property not found" };
+  const property = await getProperty(id);
+  if (!property) notFound();
 
   const where = [property.locality, property.city].filter(Boolean).join(", ");
   return {
@@ -73,7 +80,7 @@ export default async function PropertyPage({
   const { id } = await params;
 
   const [property, savedIds, user] = await Promise.all([
-    getPropertyById(id),
+    getProperty(id),
     getSavedIds(),
     getUser(),
   ]);

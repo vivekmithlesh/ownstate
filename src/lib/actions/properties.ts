@@ -118,6 +118,10 @@ export async function getPropertiesNearby(
 export async function getPropertyById(
   id: string
 ): Promise<PropertyWithOwner | null> {
+  // A malformed id can't match any row — return null (→ 404) instead of letting
+  // an invalid-uuid DB error bubble up as a 500.
+  if (!uuidSchema.safeParse(id).success) return null;
+
   const supabase = await createClient();
 
   const { data, error } = await supabase
