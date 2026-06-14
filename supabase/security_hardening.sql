@@ -82,8 +82,12 @@ create trigger trg_properties_guard
 -- ---- Replace the over-powered insert_property with a safe, owner-scoped one --
 -- The app no longer calls insert_property; lock it to privileged callers (the
 -- seed script runs as service_role and is unaffected).
--- Auto-detects every overload of insert_property and revokes from each, so this
+-- Auto-detects every overload of insert_property and locks it down, so this
 -- never fails on an argument-signature mismatch (and is a no-op if it's absent).
+-- IMPORTANT: Postgres grants EXECUTE to PUBLIC by default, and anon/authenticated
+-- are members of PUBLIC — so we must revoke from PUBLIC (not just those roles) or
+-- the function stays callable by anyone. We then re-grant to service_role only,
+-- so the seed script (which runs as service_role) still works.
 do $$
 declare
   r record;
@@ -95,7 +99,9 @@ begin
     where n.nspname = 'public'
       and p.proname = 'insert_property'
   loop
+    execute format('revoke execute on function %s from public', r.sig);
     execute format('revoke execute on function %s from anon, authenticated', r.sig);
+    execute format('grant execute on function %s to service_role', r.sig);
   end loop;
 end $$;
 

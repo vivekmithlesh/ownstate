@@ -17,31 +17,15 @@ const easeInOutCubic = cubicBezier(0.65, 0, 0.35, 1);
 export default function EarthHero() {
   const targetRef = useRef<HTMLDivElement>(null);
 
-  // Only load the (heavy) hero video when it's actually worth it. We mount it
-  // after hydration AND gate it on: a wide enough viewport, no reduced-motion
-  // preference, and no Save-Data / 2g connection. On phones, data-saver, or
-  // reduced-motion the static dark gradient below stands in — so we never push
-  // a multi-megabyte autoplay video over mobile data. (Mounting client-side also
-  // avoids a hydration mismatch from video-speed browser extensions.)
-  const [showVideo, setShowVideo] = useState(false);
-  useEffect(() => {
-    const reduce = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    ).matches;
-    const wide = window.matchMedia("(min-width: 768px)").matches;
-    const conn = (
-      navigator as Navigator & {
-        connection?: { saveData?: boolean; effectiveType?: string };
-      }
-    ).connection;
-    const cheapData =
-      conn?.saveData === true ||
-      (conn?.effectiveType ? /2g/.test(conn.effectiveType) : false);
-    // One-time read of device capability after mount (can't run during SSR);
-    // this is the intended use of an effect, hence the scoped disable.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setShowVideo(wide && !reduce && !cheapData);
-  }, []);
+  // Mount the <video> only after hydration. Video-speed browser extensions
+  // inject controls into <video> nodes before React hydrates, which would cause
+  // a hydration mismatch; mounting client-side leaves nothing to touch. The
+  // static gradient below paints immediately and stands in while the video
+  // loads (and for reduced-motion users, who keep the still gradient via the
+  // motion-reduce class on the video). Shown on every device.
+  const [mounted, setMounted] = useState(false);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => setMounted(true), []);
 
   // Track scroll across the tall section: 0 at the top, 1 when it leaves.
   const { scrollYProgress } = useScroll({
@@ -76,9 +60,9 @@ export default function EarthHero() {
         />
 
         {/* ---- Fixed video background (scroll-zoom) ---- */}
-        {/* Only on capable, non-data-saving devices; preload deferred so it never
-            blocks first paint. The gradient above is the fallback otherwise. */}
-        {showVideo && (
+        {/* Cinematic Earth video on the home hero, shown on all devices. The
+            gradient above remains as the load fallback. */}
+        {mounted && (
           <motion.video
             style={{ scale }}
             className="absolute inset-0 h-full w-full object-cover will-change-transform motion-reduce:!scale-100"
@@ -86,7 +70,7 @@ export default function EarthHero() {
             muted
             loop
             playsInline
-            preload="none"
+            preload="auto"
             aria-hidden="true"
           >
             <source src="/earth-hero.mp4" type="video/mp4" />
